@@ -51,7 +51,7 @@ npm run lint
 
 - React 19 + TypeScript
 - vinext + Vite 8
-- Cloudflare Workers / Sites
+- Cloudflare Workers 本地模拟运行时
 - 原生 CSS 动画与 Web Audio API
 
 ## 数据说明

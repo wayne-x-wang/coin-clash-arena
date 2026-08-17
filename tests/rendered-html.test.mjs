@@ -32,14 +32,44 @@ test("server-renders the Chinese two-player battle game", async () => {
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton|Starter Project/);
 });
 
+test("does not expose the Cloudflare image transformation route", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-no-image-transform`);
+  const { default: worker } = await import(workerUrl.href);
+  let assetFetches = 0;
+
+  const response = await worker.fetch(
+    new Request(
+      "http://localhost/_vinext/image?url=%2Ffunny-fighters-v1.png&w=640&q=75&dpl=attacker-nonce",
+    ),
+    {
+      ASSETS: {
+        fetch: async () => {
+          assetFetches += 1;
+          return new Response("Not found", { status: 404 });
+        },
+      },
+      get IMAGES() {
+        throw new Error("Cloudflare Images must not be accessed");
+      },
+    },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("location"), "http://localhost/funny-fighters-v1.png");
+  assert.equal(assetFetches, 0);
+});
+
 test("keeps the economy, gameplay, original music, and funny character art in the finished source", async () => {
-  const [page, economy, audio, css, layout, packageJson] = await Promise.all([
+  const [page, economy, audio, css, layout, packageJson, viteConfig] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/economy.js", import.meta.url), "utf8"),
     readFile(new URL("../app/game-audio.js", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../vite.config.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(economy, /stick:\s*100/);
@@ -89,6 +119,7 @@ test("keeps the economy, gameplay, original music, and funny character art in th
   assert.match(css, /@keyframes music-bar/);
   assert.match(layout, /lang="zh-CN"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.doesNotMatch(packageJson, /@openai\/sites-vite-plugin/);
+  assert.doesNotMatch(viteConfig, /sites-vite-plugin|sites\(\)|hosting\.json/);
   await access(new URL("../public/funny-fighters-v1.png", import.meta.url));
-  await assert.rejects(access(new URL("../app/_sites-preview", import.meta.url)));
 });
