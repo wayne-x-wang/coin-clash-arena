@@ -121,5 +121,6 @@ test("keeps the economy, gameplay, original music, and funny character art in th
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.doesNotMatch(packageJson, /@openai\/sites-vite-plugin/);
   assert.doesNotMatch(viteConfig, /sites-vite-plugin|sites\(\)|hosting\.json/);
+  assert.ok(viteConfig.includes('"!**/*.d.ts"'));
   await access(new URL("../public/funny-fighters-v1.png", import.meta.url));
 });

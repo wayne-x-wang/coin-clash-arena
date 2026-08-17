@@ -20,6 +20,16 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    // Vite's automatic entry discovery treats colocated declaration files as
+    // JavaScript entry points. Keep source discovery explicit so `.d.ts` files
+    // are available to TypeScript without being parsed by Rolldown.
+    optimizeDeps: {
+      entries: [
+        "app/**/*.{js,jsx,ts,tsx}",
+        "worker/**/*.{js,jsx,ts,tsx}",
+        "!**/*.d.ts",
+      ],
+    },
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
